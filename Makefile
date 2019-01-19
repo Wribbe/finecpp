@@ -10,7 +10,7 @@ EXECUTABLES := $(patsubst %.cpp,$(DIR_BIN)/%,$(notdir $(wildcard $(DIR_SRC)/*.cp
 
 CFLAGS += -Wall -Werror
 
-INCLUDES := -Iglad/include -Iinc
+INCLUDES := -Iglad/include -Iinclude
 
 all: $(EXECUTABLES)
 
