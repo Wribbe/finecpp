@@ -52,7 +52,7 @@ int main()
 
   // build and compile our shader zprogram
   // ------------------------------------
-  Shader ourShader("shaders/transformation.vert", "shaders/transformation.frag");
+  Shader ourShader("shaders/coordinate_systems.vert", "shaders/coordinate_systems.frag");
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
@@ -147,7 +147,23 @@ int main()
   // or set it via the texture class
   ourShader.setInt("texture2", 1);
 
-  unsigned int transfomrLoc = glGetUniformLocation(ourShader.ID, "transform");
+  glm::mat4 model = glm::mat4(1.0f);
+  model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+  glm::mat4 view = glm::mat4(1.0f);
+  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+  glm::mat4 projection;
+  projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+
+  int modelLoc = glGetUniformLocation(ourShader.ID, "model");
+  int viewLoc = glGetUniformLocation(ourShader.ID, "view");
+  int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
+
+  glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+  glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+  glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
 
   // render loop
   // -----------
@@ -156,12 +172,6 @@ int main()
     // input
     // -----
     processInput(window);
-
-    /* Rotate the box. */
-    glm::mat4 trans = glm::mat4(1.0f);
-    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-    trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-    glUniformMatrix4fv(transfomrLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
     // render
     // ------
