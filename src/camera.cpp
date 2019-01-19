@@ -74,6 +74,10 @@ float vertices[] = {
   -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f,  0.0f);
+
 int main()
 {
   // glfw: initialize and configure
@@ -205,15 +209,6 @@ int main()
 
   glEnable(GL_DEPTH_TEST);
 
-//  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-//  glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-//  glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-
-//  glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-//  glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-//  glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
-
-  float radius = 10.0f;
   glm::mat4 view;
 
   // render loop
@@ -224,9 +219,7 @@ int main()
     // -----
     processInput(window);
 
-    float camX = sin(glfwGetTime()) * radius;
-    float camZ = cos(glfwGetTime()) * radius;
-    view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
     // render
@@ -280,6 +273,20 @@ void processInput(GLFWwindow *window)
   }
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
+  }
+
+  float cameraSpeed = 0.05f;
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    cameraPos += cameraSpeed * cameraFront;
+  }
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    cameraPos -= cameraSpeed * cameraFront;
+  }
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  }
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
   }
 }
 
