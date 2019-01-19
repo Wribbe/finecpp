@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "shader_s.h"
+#include "camera.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -12,6 +13,8 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -74,9 +77,16 @@ float vertices[] = {
   -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f,  0.0f);
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+float pitch = 0;
+float yaw = 0;
 
 int main()
 {
@@ -102,6 +112,8 @@ int main()
   }
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+  glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetScrollCallback(window, scroll_callback);
 
   // glad: load all OpenGL function pointers
   // ---------------------------------------
@@ -198,16 +210,10 @@ int main()
   model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
   glm::mat4 projection;
-  projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
-
-  int modelLoc = glGetUniformLocation(ourShader.ID, "model");
-  int viewLoc = glGetUniformLocation(ourShader.ID, "view");
-  int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
-
-  glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-  glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+  ourShader.setMat4("model", model);
 
   glEnable(GL_DEPTH_TEST);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   glm::mat4 view;
 
@@ -219,8 +225,14 @@ int main()
     // -----
     processInput(window);
 
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
+    projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+    ourShader.setMat4("projection", projection);
+    view = camera.GetViewMatrix();
+    ourShader.setMat4("view", view);
 
     // render
     // ------
@@ -268,25 +280,24 @@ int main()
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, true);
-  }
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+  if (
+      glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+      glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+  {
     glfwSetWindowShouldClose(window, true);
   }
 
-  float cameraSpeed = 0.05f;
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    cameraPos += cameraSpeed * cameraFront;
+    camera.ProcessKeyboard(FORWARD, deltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    cameraPos -= cameraSpeed * cameraFront;
+    camera.ProcessKeyboard(BACKWARD, deltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    camera.ProcessKeyboard(LEFT, deltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    camera.ProcessKeyboard(RIGHT, deltaTime);
   }
 }
 
@@ -297,4 +308,27 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
   // make sure the viewport matches the new window dimensions; note that width and
   // height will be significantly larger than specified on retina displays.
   glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+  if (firstMouse)
+  {
+    lastX = xpos;
+    lastY = ypos;
+    firstMouse = false;
+  }
+
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+  lastX = xpos;
+  lastY = ypos;
+
+  camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  camera.ProcessMouseScroll(yoffset);
 }
